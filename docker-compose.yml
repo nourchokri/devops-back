@@ -1,0 +1,45 @@
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: devops
+      MYSQL_PASSWORD: devops123
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks: [gestion-net]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build: ./backend
+    image: nourchokri/gestion-projets-backend:1.0
+    container_name: backend
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql-db:3306/test_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_USERNAME: devops
+      SPRING_DATASOURCE_PASSWORD: devops123
+    ports: ["8089:8080"]
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks: [gestion-net]
+
+  frontend:
+    build: ./frontend
+    image: nourchokri/gestion-projets-frontend:1.0
+    container_name: frontend
+    ports: ["4200:80"]
+    depends_on: [backend]
+    networks: [gestion-net]
+
+volumes:
+  mysql-data:
+
+networks:
+  gestion-net:
